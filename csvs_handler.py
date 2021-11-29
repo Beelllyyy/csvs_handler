@@ -25,6 +25,7 @@ def get_col_names(dict_of_csv):
                             index=list(dict_of_csv.keys()))
 
 
+# Given the above created dataframe of colnames, checks if names are matching throughout each column; displays mismatches.
 def check_col_names(df_of_colnames):
     mismatch_somewhere = False
     for col in df_of_colnames:
@@ -46,3 +47,14 @@ def get_col_types(dict_of_csv):
                             columns=[f'col_{n}' for n in range(list_n_cols[0])],
                             index=list(dict_of_csv.keys()))
 
+
+# Given the above created dataframe of datatypes, checks if names are matching throughout each column; displays mismatches.
+def check_col_types(df_of_coltypes):
+    mismatch_somewhere = False
+    for col in df_of_coltypes:
+        if not df_of_coltypes[col].eq(df_of_coltypes[col][0]).all():
+            print('[ ] {} has these data types:'.format(col))
+            print(" ".join(str(datatype) for datatype in df_of_coltypes[col].unique()))
+            mismatch_somewhere = True
+    if not mismatch_somewhere:
+        print('All column datatypes are matching')
