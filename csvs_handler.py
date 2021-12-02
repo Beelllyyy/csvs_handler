@@ -67,10 +67,12 @@ def check_col_types(df_of_coltypes, returning=False):
 
 # Takes in a dictionary of dataframes to be concatenated
 # -> Returns concatenated dataframe
-def concatenate_csv(dict_of_csv):
+def concatenate_csv(dict_of_csv, index=""):
     df = dict_of_csv[list(dict_of_csv.keys())[0]]
     for file in list(dict_of_csv.keys())[1:]:
         df = df.append(dict_of_csv[file])
+    if index:
+        df.set_index(index, inplace=True)
     return df
 
 
@@ -136,8 +138,38 @@ def datetime_autoconvert(df):
     return df
 
 
+# Lighter version of datetime_autoconverter. Checks only first element of column to determin if it should be converted to datetime.
+# If value is missing, keeps looking for first available value in same column.
+def datetime_autoconverter_lite(df):
+    for col in df.columns:
+        for index_row in range(len(df)):
+            # need to control 2 cells in order to return series and not just a string. Series has str.match method, easier to manage.
+            cell = df[col][index_row: index_row + 1]
+            if not any(cell.isna()):
+                if cell.astype(str).str.match(r'\d{4}-\d{2}-\d{2} \d{2}\:\d{2}\:\d{2}').all():
+                    df[col] = pd.to_datetime(df[col])
+                break
+    return df
+
+
+def summarize_datetime(df):
+    summary_df = pd.DataFrame(index=df.columns)
+    summary_df['min'] = df.min()
+    summary_df['max'] = df.max()
+    summary_df['time_span'] = df.max() - df.min()
+    return summary_df
+
+
+def count_by_month(df):
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    summary_df = pd.DataFrame(columns=df.columns)
+    for col in summary_df.columns:
+        summary_df[col] = df[col].groupby(pd.DatetimeIndex(df[col]).month).agg('count')
+    return summary_df
+
+
 def summary_report(df):
-    df = datetime_autoconvert(df)
+
     # Dataframe size
     n_cols = len(df.columns)
     n_obs = len(df)
@@ -149,11 +181,17 @@ def summary_report(df):
         axis=1,
     )
     vars_table.columns = ['dtype', 'missing_values', 'missing_values_perc']
-    return vars_table
+
     # Datetime statistics
     # Min date, max date, Timespan,
     dt_cols = df.loc[:, vars_table.dtype == 'datetime64[ns]']
+    count_by_month(dt_cols)
+
+    # Numeric variables statistics
+
 
 
 # TODO: continue summary_report function. Last row ATM locates datetime columns. Use that to run summary statistics. Then do the same for numeric columns and string columns.
 
+
+# TODO Cleaning: index dusplicates
