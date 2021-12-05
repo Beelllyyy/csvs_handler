@@ -9,8 +9,7 @@ def csv_grabber(path):
     directory = glob.glob(path + '/*.csv')
     list_of_csv = {}
     for filename in directory:
-        list_of_csv[filename.split("\\")[-1]] = pd.read_csv(filename, index_col=None,
-                                                            header=0)  # works only if first row is header;
+        list_of_csv[filename.split("\\")[-1]] = pd.read_csv(filename, index_col=None, header=0)  # works only if first row is header;
         print('Imported {}'.format(filename.split('\\')[-1]))
     print('[ Imported {} files ]'.format(len(list_of_csv)))
     return list_of_csv
@@ -155,7 +154,7 @@ def datetime_autoconverter_lite(df):
 
 
 def summarize_datetime(df):
-    dt_cols = df.select_dtypes([np.datetime64, 'datetime', 'datetime64', 'datetimetz', 'datetimetz'])
+    dt_cols = df.select_dtypes([np.datetime64, 'datetime','datetime64', 'datetimetz', 'datetimetz'])
     summary_df = pd.DataFrame(index=dt_cols.columns)
     summary_df['min'] = dt_cols.min()
     summary_df['max'] = dt_cols.max()
@@ -164,7 +163,7 @@ def summarize_datetime(df):
 
 
 def count_by_weekday(df):
-    dt_cols = df.select_dtypes([np.datetime64, 'datetime', 'datetime64', 'datetimetz', 'datetimetz'])
+    dt_cols = df.select_dtypes([np.datetime64, 'datetime','datetime64', 'datetimetz', 'datetimetz'])
     summary_df = pd.DataFrame(columns=dt_cols.columns)
     for col in summary_df.columns:
         summary_df[col] = dt_cols[col].groupby(pd.DatetimeIndex(dt_cols[col]).dayofweek).agg('count')
@@ -173,7 +172,7 @@ def count_by_weekday(df):
 
 
 def count_by_day(df):
-    dt_cols = df.select_dtypes([np.datetime64, 'datetime', 'datetime64', 'datetimetz', 'datetimetz'])
+    dt_cols = df.select_dtypes([np.datetime64, 'datetime','datetime64', 'datetimetz', 'datetimetz'])
     summary_df = pd.DataFrame(columns=dt_cols.columns)
     for col in summary_df.columns:
         summary_df[col] = dt_cols[col].groupby(pd.DatetimeIndex(dt_cols[col]).day).agg('count')
@@ -183,7 +182,7 @@ def count_by_day(df):
 
 def count_by_month(df):
     # Retrieve datetime columns
-    dt_cols = df.select_dtypes([np.datetime64, 'datetime', 'datetime64', 'datetimetz', 'datetimetz'])
+    dt_cols = df.select_dtypes([np.datetime64, 'datetime','datetime64', 'datetimetz', 'datetimetz'])
     summary_df = pd.DataFrame(columns=dt_cols.columns)
     for col in summary_df.columns:
         summary_df[col] = dt_cols[col].groupby(pd.DatetimeIndex(dt_cols[col]).month).agg('count')
@@ -206,26 +205,34 @@ def summarize_numeric(df):
 
 
 def summarize_categorical(df):
-    categorical_cols = df.select_dtypes('category')
+    df_categ = df.select_dtypes('category')
+    summary_df = pd.DataFrame(index=df_categ.columns, columns=['n_missing', 'complete_rate', 'n_unique'])
+    for categ in summary_df.index:
+        n_missing = df[categ].isna().sum()
+        complete_rate = round(1 - (n_missing / len(df[categ])), 2)
+        n_unique = len(df[categ].unique())
+        summary_df.at[categ, 'n_missing'] = n_missing
+        summary_df.at[categ, 'complete_rate'] = complete_rate
+        summary_df.at[categ, 'n_unique'] = n_unique
+    print(summary_df)
 
-    for i, col in enumerate(categorical_cols):
-        n_unique = len(df[col].unique())
-        unique_vals = df[col].unique()
-        unique_counts = df[col].value_counts()
-        missing = df[col].isna().sum()
-        complete_rate = round(1 - (missing / len(col)), 2)
-
-
-# TODO decide how to report this information (look at "skim without charts" in R)
+    print('\nMost frequent cagetories:')
+    for i, categ in enumerate(summary_df.index):
+        print('\n[{}] {}'.format(i, categ))
+        print(df_categ[categ].value_counts()[:5])
 
 
 def summary_report(df):
-    # First manually ask to detect variables that should be treated as categorical
+
+    print(" ******* SUMMARY REPORT ******* ")
+    print("\nHere's a glimpse of your data:\n")
     print(df.head(5))
-    dict_of_cols = dict(zip(list(range(len(df.columns))), df.columns))
+
+    # First manually ask to detect variables that should be treated as categorical
+    dict_of_cols = dict(zip(list(range(len(df.columns))),df.columns))
     print(dict_of_cols)
-    categorical_cols = input('Above you can find a glimpse of your data and a numbered list of columns.\n'
-                             'Write here the [list of column numbers] that you want to treat as CATEGORICAL variables:\n'
+    categorical_cols = input('\nAbove you can find a glimpse of your data and a numbered list of columns.\n'
+                             'Write here the column numbers that you want to treat as CATEGORICAL variables:\n'
                              'Separate by comma, e.g.: 1, 4, 7')
     categorical_cols = list(map(lambda x: int(x), categorical_cols.split(',')))
     categorical_cols = [dict_of_cols[x] for x in categorical_cols]
@@ -233,8 +240,10 @@ def summary_report(df):
         df[col] = pd.Categorical(df[col])
 
     # Dataframe shape
+    print('\nGreat, now your dataset looks like this:')
     [n_obs, n_cols] = df.shape
-    print('Dataframe contains data of {} variables for {} observations'.format(n_cols, n_obs))
+    print('\n___DATASET SHAPE AND DTYPES___________________________________')
+    print('Dataframe contains data of {} variables for {} observations'. format(n_cols, n_obs))
 
     # Dataframe columns, dtypes and missing values
     missing = summarize_col_missing_values(df, show_all=True).transpose()
@@ -245,12 +254,14 @@ def summary_report(df):
     #   Join in dataframe with missing values and % of missing values
     vars_table = vars_table.join(missing, how="left", on=vars_table.index)
 
+    print('Columns have the following data types:\n')
     print(vars_table)
 
+    print('\n___SUMMARY STATISTICS__________________________________________')
     # Datetime fields statistics
     # Min date, max date, Timespan,
     dt_cols = df.select_dtypes([np.datetime64, 'datetime', 'datetime64', 'datetimetz', 'datetimetz'])
-    print('--------------- DATETIME STATISTICS: ---------------')
+    print('--------------- Datetime variables ---------------')
     print('Datetime fields: {}'.format(dt_cols.columns))
     print('[1] Summary:')
     print(summarize_datetime(dt_cols))
@@ -262,8 +273,11 @@ def summary_report(df):
     print(count_by_weekday(dt_cols))
 
     # Numeric fields statistics
+    print('--------------- Numeric variables ---------------')
     print(summarize_numeric(df))
 
     # Categorical data
+    print('--------------- Categorical variables ---------------')
+    summarize_categorical(df)
 
 # TODO Cleaning: index dusplicates
