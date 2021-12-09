@@ -237,7 +237,7 @@ def summarize_categorical(df):
         print(df_categ[categ].value_counts()[:5])
 
 
-def summary_report(df):
+def summary_report(df, list_of_categ_cols, convert_datetime=False):
 
     print(" ******* SUMMARY REPORT ******* ")
     print("\nHere's a glimpse of your data:\n")
@@ -245,15 +245,13 @@ def summary_report(df):
 
     # First manually ask to detect variables that should be treated as categorical
     dict_of_cols = dict(zip(list(range(len(df.columns))), df.columns))
-    print(dict_of_cols)
-    categorical_cols = input('\nAbove you can find a glimpse of your data and a numbered list of columns.\n'
-                             'Write here the column numbers that you want to treat as CATEGORICAL variables:\n'
-                             'Separate by comma, e.g.: 1, 4, 7')
-    categorical_cols = list(map(lambda x: int(x), categorical_cols.split(',')))
-    categorical_cols = [dict_of_cols[x] for x in categorical_cols]
-    for col in categorical_cols:
-        df[col] = pd.Categorical(df[col])
-
+    if list_of_categ_cols:
+        categorical_cols = list(map(lambda x: int(x), list_of_categ_cols.split(',')))
+        categorical_cols = [dict_of_cols[x] for x in categorical_cols]
+        for col in categorical_cols:
+            df[col] = pd.Categorical(df[col])
+    if convert_datetime:
+        datetime_autoconverter_lite(df)
     # Dataframe shape
     print('\nGreat, now your dataset looks like this:')
     [n_obs, n_cols] = df.shape
