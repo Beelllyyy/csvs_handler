@@ -81,11 +81,26 @@ def concatenate_csv(dict_of_csv, index=""):
 # -> Returns dataframe containing only duplicate rows
 def find_duplicate_rows(df, returning=False, printing=True):
     df_dupl = df[df.duplicated()]
-    if len(df_dupl):
-        print(df_dupl)
-    else:
-        print("No duplicate rows detected.")
-    return df_dupl
+    if printing:
+        if len(df_dupl):
+            print(df_dupl)
+        else:
+            print("No duplicate rows detected.")
+    if returning:
+        return df_dupl
+
+
+# Controls for rows with duplicate index
+# Returns dataframe containing index-duplicate rows
+def check_index_duplicates(df, returning=False, printing=True):
+    df_dupl = df.loc[df.index.duplicated()]
+    if printing:
+        if len(df_dupl):
+            print(df_dupl)
+        else:
+            print("No rows with duplicate index were detected.")
+    if returning:
+        return df_dupl
 
 
 # -> Returns number of rows with at least one missing value
@@ -154,7 +169,7 @@ def datetime_autoconverter_lite(df):
 
 
 def summarize_datetime(df):
-    dt_cols = df.select_dtypes([np.datetime64, 'datetime','datetime64', 'datetimetz', 'datetimetz'])
+    dt_cols = df.select_dtypes([np.datetime64, 'datetime', 'datetime64', 'datetimetz', 'datetimetz'])
     summary_df = pd.DataFrame(index=dt_cols.columns)
     summary_df['min'] = dt_cols.min()
     summary_df['max'] = dt_cols.max()
@@ -163,7 +178,7 @@ def summarize_datetime(df):
 
 
 def count_by_weekday(df):
-    dt_cols = df.select_dtypes([np.datetime64, 'datetime','datetime64', 'datetimetz', 'datetimetz'])
+    dt_cols = df.select_dtypes([np.datetime64, 'datetime', 'datetime64', 'datetimetz', 'datetimetz'])
     summary_df = pd.DataFrame(columns=dt_cols.columns)
     for col in summary_df.columns:
         summary_df[col] = dt_cols[col].groupby(pd.DatetimeIndex(dt_cols[col]).dayofweek).agg('count')
@@ -172,7 +187,7 @@ def count_by_weekday(df):
 
 
 def count_by_day(df):
-    dt_cols = df.select_dtypes([np.datetime64, 'datetime','datetime64', 'datetimetz', 'datetimetz'])
+    dt_cols = df.select_dtypes([np.datetime64, 'datetime', 'datetime64', 'datetimetz', 'datetimetz'])
     summary_df = pd.DataFrame(columns=dt_cols.columns)
     for col in summary_df.columns:
         summary_df[col] = dt_cols[col].groupby(pd.DatetimeIndex(dt_cols[col]).day).agg('count')
@@ -182,7 +197,7 @@ def count_by_day(df):
 
 def count_by_month(df):
     # Retrieve datetime columns
-    dt_cols = df.select_dtypes([np.datetime64, 'datetime','datetime64', 'datetimetz', 'datetimetz'])
+    dt_cols = df.select_dtypes([np.datetime64, 'datetime', 'datetime64', 'datetimetz', 'datetimetz'])
     summary_df = pd.DataFrame(columns=dt_cols.columns)
     for col in summary_df.columns:
         summary_df[col] = dt_cols[col].groupby(pd.DatetimeIndex(dt_cols[col]).month).agg('count')
@@ -229,7 +244,7 @@ def summary_report(df):
     print(df.head(5))
 
     # First manually ask to detect variables that should be treated as categorical
-    dict_of_cols = dict(zip(list(range(len(df.columns))),df.columns))
+    dict_of_cols = dict(zip(list(range(len(df.columns))), df.columns))
     print(dict_of_cols)
     categorical_cols = input('\nAbove you can find a glimpse of your data and a numbered list of columns.\n'
                              'Write here the column numbers that you want to treat as CATEGORICAL variables:\n'
@@ -279,5 +294,3 @@ def summary_report(df):
     # Categorical data
     print('--------------- Categorical variables ---------------')
     summarize_categorical(df)
-
-# TODO Cleaning: index dusplicates
